@@ -260,4 +260,25 @@ router.delete("/class/:id", async (req, res, next) => {
 
 
 
+// TESTING
+
+router.get('/grades/:id', async (req, res, next) => {
+  const { id } = req.params;
+  console.log("Received ID:", id);  // Выводит значение id в консоль
+  if (!ObjectId.isValid(id)) {
+      return res.status(400).send('Invalid ID format');
+  }
+
+  try {
+      const grade = await gradesCollection.findOne({ _id: new ObjectId(id) });
+      if (!grade) {
+          return res.status(404).send('Grade not found');
+      }
+      res.json(grade);
+  } catch (error) {
+      next(error);
+  }
+});
+
+
 export default router

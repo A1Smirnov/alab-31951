@@ -2,8 +2,9 @@
 
 import express from "express";
 import "dotenv/config";
-import grades from "./routes/grades.js";
 import gradesRoutes from "./routes/grades_agg.js";
+import grades from "./routes/grades.js";
+
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -19,8 +20,9 @@ app.get("/", (req, res) => {
 });
 
 // Mount the routes
+app.use("/grades", gradesRoutes);
 app.use("/grades", grades);
-app.use("/grades/agg", gradesRoutes);
+
 
 // Global Error handling middleware
 app.use((err, req, res, next) => {

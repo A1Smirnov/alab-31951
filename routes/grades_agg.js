@@ -2,8 +2,10 @@
 
 import express from "express";
 import db from "../db/conn.js";
+import { ObjectId } from 'mongodb';
 
 const router = express.Router();
+
 
 /**
  * This file contains all aggregation routes in one place for educational purposes.
@@ -76,11 +78,19 @@ router.get("/learner/:id/avg-class", async (req, res) => {
   else res.status(200).send(result);
 });
 
+
+
 // GET average > 70%, and percentage of learners who got this mark and higher
-router.get("/grades/stats", async (req, res) => {
+router.get("/stats", async (req, res) => {
   try {
     const stats = await db.collection("grades").aggregate([
-      { $addFields: { averageScore: { $avg: "$scores.score" } } },
+      {
+        $addFields: {
+          averageScore: {
+            $avg: "$scores.score",
+          },
+        },
+      },
       {
         $facet: {
           totalLearners: [{ $count: "total" }],

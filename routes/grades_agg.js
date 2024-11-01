@@ -126,7 +126,7 @@ router.get("/stats", async (req, res) => {
 });
 
 // GET stats for a specific class by ID
-router.get("/grades/stats/:id", async (req, res) => {
+router.get("/stats/:id", async (req, res) => {
   const classId = parseInt(req.params.id);
   try {
     const stats = await db.collection("grades").aggregate([

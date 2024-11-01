@@ -1,3 +1,5 @@
+// ./routes/grades_agg.js
+
 import express from "express";
 import db from "../db/conn.js";
 
@@ -80,5 +82,101 @@ router.get("/learner/:id/avg-class", async (req, res) => {
   if (!result) res.send("Not found").status(404);
   else res.send(result).status(200);
 });
+
+
+// GET avg>70%, and % of learners who got this mark and higher
+
+export default function(app) {
+
+router.get('/grades/stats', async (req, res, next) =>  {
+  try {
+      const stats = await db.collection('grades').aggregate([
+          {
+              $addFields: {
+                  averageScore: {
+                      $avg: "$scores.score"
+                  }
+              }
+          },
+          {
+              $facet: {
+                  totalLearners: [
+                      { $count: "total" }
+                  ],
+                  above70Percent: [
+                      { $match: { averageScore: { $gt: 70 } } },
+                      { $count: "above70" }
+                  ]
+              }
+          },
+          {
+              $project: {
+                  totalLearners: { $arrayElemAt: ["$totalLearners.total", 0] },
+                  above70Percent: { $arrayElemAt: ["$above70Percent.above70", 0] },
+                  percentageAbove70: {
+                      $multiply: [
+                          { $divide: [{ $arrayElemAt: ["$above70Percent.above70", 0] }, { $arrayElemAt: ["$totalLearners.total", 0] }] },
+                          100
+                      ]
+                  }
+              }
+          }
+      ]).toArray();
+
+      res.json(stats[0]);
+  } catch (error) {
+      res.status(500).send("Error calculating stats: " + error.message);
+  }
+});
+
+app.get('/grades/stats/:id', async (req, res) => {
+  const classId = parseInt(req.params.id);
+  try {
+      const stats = await db.collection('grades').aggregate([
+          {
+              $match: { class_id: classId }
+          },
+          {
+              $addFields: {
+                  averageScore: {
+                      $avg: "$scores.score"
+                  }
+              }
+          },
+          {
+              $facet: {
+                  totalLearners: [
+                      { $count: "total" }
+                  ],
+                  above70Percent: [
+                      { $match: { averageScore: { $gt: 70 } } },
+                      { $count: "above70" }
+                  ]
+              }
+          },
+          {
+              $project: {
+                  totalLearners: { $arrayElemAt: ["$totalLearners.total", 0] },
+                  above70Percent: { $arrayElemAt: ["$above70Percent.above70", 0] },
+                  percentageAbove70: {
+                      $multiply: [
+                          { $divide: [{ $arrayElemAt: ["$above70Percent.above70", 0] }, { $arrayElemAt: ["$totalLearners.total", 0] }] },
+                          100
+                      ]
+                  }
+              }
+          }
+      ]).toArray();
+
+      res.json(stats[0]);
+  } catch (error) {
+      res.status(500).send("Error calculating stats for class ID " + classId + ": " + error.message);
+  }
+});
+};
+
+
+
+
 
 export default router;

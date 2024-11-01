@@ -1,3 +1,5 @@
+// ./warm-up/algos.js
+
 // 1. Find the Length of Each String in an Array
 // Problem: Write a function getLengths(arr) that takes an array of strings and returns an array of their lengths.
 // Example:

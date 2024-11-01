@@ -1,3 +1,5 @@
+// ./routes/grades.js
+
 import express from 'express';
 import db from '../db/conn.js'
 import { ObjectId } from 'mongodb';
@@ -140,14 +142,14 @@ router.post('/', async (req, res, next) => {
 router.patch('/:id/add', async (req, res, next) => {
   try {
     let collection = db.collection("grades");
-    let query = { _id: ObjectId.createFromHexString(req.params.id) }
+    let query = { _id: new ObjectId(req.params.id) };
 
     let result = await collection.updateOne(query, {
       $push: { scores: req.body }
     })
 
-    if (!result) res.send("Not Found").status(404)
-    else res.send(result).status(200)
+    if (!result) res.status(404).send("Not Found");
+    else res.status(200).send(result);
   } catch (err) {
     next(err)
   }

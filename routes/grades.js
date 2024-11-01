@@ -7,6 +7,17 @@ import { ObjectId } from 'mongodb';
 const router = express.Router()
 // base path: /grades
 
+router.get('/', async (req, res, next) => {
+  try {
+    let collection = db.collection("grades"); // Get the grades collection
+    let grades = await collection.find().toArray(); // Fetch all grades
+
+    res.status(200).json(grades); // Send the grades as a JSON response
+  } catch (err) {
+    next(err); // Pass any errors to the error handler
+  }
+});
+
 // Get a single grade entry
 router.get('/:id', async (req, res, next) => {
   try {

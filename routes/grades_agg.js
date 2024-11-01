@@ -6,16 +6,13 @@ import db from "../db/conn.js";
 const router = express.Router();
 
 /**
- * It is not best practice to seperate these routes
- * like we have done here. This file was created
- * specifically for educational purposes, to contain
- * all aggregation routes in one place.
+ * This file contains all aggregation routes in one place for educational purposes.
  */
 
 /**
  * Grading Weights by Score Type:
  * - Exams: 50%
- * - Quizes: 30%
+ * - Quizzes: 30%
  * - Homework: 20%
  */
 
@@ -25,40 +22,36 @@ router.get("/learner/:id/avg-class", async (req, res) => {
 
   let result = await collection
     .aggregate([
-      {
-        $match: { learner_id: Number(req.params.id) },
-      },
-      {
-        $unwind: { path: "$scores" },
-      },
+      { $match: { learner_id: Number(req.params.id) } },
+      { $unwind: { path: "$scores" } },
       {
         $group: {
           _id: "$class_id",
           quiz: {
             $push: {
-              $cond: {
-                if: { $eq: ["$scores.type", "quiz"] },
-                then: "$scores.score",
-                else: "$$REMOVE",
-              },
+              $cond: [
+                { $eq: ["$scores.type", "quiz"] },
+                "$scores.score",
+                "$$REMOVE",
+              ],
             },
           },
           exam: {
             $push: {
-              $cond: {
-                if: { $eq: ["$scores.type", "exam"] },
-                then: "$scores.score",
-                else: "$$REMOVE",
-              },
+              $cond: [
+                { $eq: ["$scores.type", "exam"] },
+                "$scores.score",
+                "$$REMOVE",
+              ],
             },
           },
           homework: {
             $push: {
-              $cond: {
-                if: { $eq: ["$scores.type", "homework"] },
-                then: "$scores.score",
-                else: "$$REMOVE",
-              },
+              $cond: [
+                { $eq: ["$scores.type", "homework"] },
+                "$scores.score",
+                "$$REMOVE",
+              ],
             },
           },
         },
@@ -79,104 +72,88 @@ router.get("/learner/:id/avg-class", async (req, res) => {
     ])
     .toArray();
 
-  if (!result) res.send("Not found").status(404);
-  else res.send(result).status(200);
+  if (!result.length) res.status(404).send("Not found");
+  else res.status(200).send(result);
 });
 
-
-// GET avg>70%, and % of learners who got this mark and higher
-
-export default function(app) {
-
-router.get('/grades/stats', async (req, res, next) =>  {
+// GET average > 70%, and percentage of learners who got this mark and higher
+router.get("/grades/stats", async (req, res) => {
   try {
-      const stats = await db.collection('grades').aggregate([
-          {
-              $addFields: {
-                  averageScore: {
-                      $avg: "$scores.score"
-                  }
-              }
+    const stats = await db.collection("grades").aggregate([
+      { $addFields: { averageScore: { $avg: "$scores.score" } } },
+      {
+        $facet: {
+          totalLearners: [{ $count: "total" }],
+          above70Percent: [
+            { $match: { averageScore: { $gt: 70 } } },
+            { $count: "above70" },
+          ],
+        },
+      },
+      {
+        $project: {
+          totalLearners: { $arrayElemAt: ["$totalLearners.total", 0] },
+          above70Percent: { $arrayElemAt: ["$above70Percent.above70", 0] },
+          percentageAbove70: {
+            $multiply: [
+              {
+                $divide: [
+                  { $arrayElemAt: ["$above70Percent.above70", 0] },
+                  { $arrayElemAt: ["$totalLearners.total", 0] },
+                ],
+              },
+              100,
+            ],
           },
-          {
-              $facet: {
-                  totalLearners: [
-                      { $count: "total" }
-                  ],
-                  above70Percent: [
-                      { $match: { averageScore: { $gt: 70 } } },
-                      { $count: "above70" }
-                  ]
-              }
-          },
-          {
-              $project: {
-                  totalLearners: { $arrayElemAt: ["$totalLearners.total", 0] },
-                  above70Percent: { $arrayElemAt: ["$above70Percent.above70", 0] },
-                  percentageAbove70: {
-                      $multiply: [
-                          { $divide: [{ $arrayElemAt: ["$above70Percent.above70", 0] }, { $arrayElemAt: ["$totalLearners.total", 0] }] },
-                          100
-                      ]
-                  }
-              }
-          }
-      ]).toArray();
+        },
+      },
+    ]).toArray();
 
-      res.json(stats[0]);
+    res.json(stats[0]);
   } catch (error) {
-      res.status(500).send("Error calculating stats: " + error.message);
+    res.status(500).send("Error calculating stats: " + error.message);
   }
 });
 
-app.get('/grades/stats/:id', async (req, res) => {
+// GET stats for a specific class by ID
+router.get("/grades/stats/:id", async (req, res) => {
   const classId = parseInt(req.params.id);
   try {
-      const stats = await db.collection('grades').aggregate([
-          {
-              $match: { class_id: classId }
+    const stats = await db.collection("grades").aggregate([
+      { $match: { class_id: classId } },
+      { $addFields: { averageScore: { $avg: "$scores.score" } } },
+      {
+        $facet: {
+          totalLearners: [{ $count: "total" }],
+          above70Percent: [
+            { $match: { averageScore: { $gt: 70 } } },
+            { $count: "above70" },
+          ],
+        },
+      },
+      {
+        $project: {
+          totalLearners: { $arrayElemAt: ["$totalLearners.total", 0] },
+          above70Percent: { $arrayElemAt: ["$above70Percent.above70", 0] },
+          percentageAbove70: {
+            $multiply: [
+              {
+                $divide: [
+                  { $arrayElemAt: ["$above70Percent.above70", 0] },
+                  { $arrayElemAt: ["$totalLearners.total", 0] },
+                ],
+              },
+              100,
+            ],
           },
-          {
-              $addFields: {
-                  averageScore: {
-                      $avg: "$scores.score"
-                  }
-              }
-          },
-          {
-              $facet: {
-                  totalLearners: [
-                      { $count: "total" }
-                  ],
-                  above70Percent: [
-                      { $match: { averageScore: { $gt: 70 } } },
-                      { $count: "above70" }
-                  ]
-              }
-          },
-          {
-              $project: {
-                  totalLearners: { $arrayElemAt: ["$totalLearners.total", 0] },
-                  above70Percent: { $arrayElemAt: ["$above70Percent.above70", 0] },
-                  percentageAbove70: {
-                      $multiply: [
-                          { $divide: [{ $arrayElemAt: ["$above70Percent.above70", 0] }, { $arrayElemAt: ["$totalLearners.total", 0] }] },
-                          100
-                      ]
-                  }
-              }
-          }
-      ]).toArray();
+        },
+      },
+    ]).toArray();
 
-      res.json(stats[0]);
+    res.json(stats[0]);
   } catch (error) {
-      res.status(500).send("Error calculating stats for class ID " + classId + ": " + error.message);
+    res.status(500).send(`Error calculating stats for class ID ${classId}: ${error.message}`);
   }
 });
-};
-
-
-
-
 
 export default router;

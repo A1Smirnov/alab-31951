@@ -1,10 +1,10 @@
-// ./index.js
+// index.js
 
 import express from "express";
 import "dotenv/config";
 import gradesRoutes from "./routes/grades_agg.js";
 import grades from "./routes/grades.js";
-
+import "./db/conn.js";
 
 const PORT = process.env.PORT || 3000;
 const app = express();

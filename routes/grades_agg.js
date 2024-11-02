@@ -6,7 +6,6 @@ import { ObjectId } from 'mongodb';
 
 const router = express.Router();
 
-
 /**
  * This file contains all aggregation routes in one place for educational purposes.
  */

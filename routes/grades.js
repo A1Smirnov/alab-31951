@@ -30,29 +30,14 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// Get a single grade entry
-router.get('/:id', async (req, res, next) => {
-  try {
-    // let collection = db.collection("grades");
-    // const query = { _id: new ObjectId(req.params.id) }
-    // let result = await collection.findOne(query);
-    // if (!result) res.send("Not Found").status(404)
-    // else res.send(result).status(200)
-
-    const grade = await Grade.findById(req.params.id);
-    if (!grade) return res.status(404).send("Not Found");
-    res.status(200).json(grade);
-  } catch (err) {
-    next(err) // the next function directs the err to the global error handling middleware
-  }
-});
 
 
-// Backwards compatibility or students/learners
+
+// Redirect from /student/:id to /learner/:id
 router.get("/student/:id", (req, res) => {
-  res.redirect(`../learner/${req.params.id}`)
+  console.log(`Redirecting from student to learner with ID: ${req.params.id}`);
+  res.redirect(`../learner/${req.params.id}`);
 });
-
 // Get a student's grade data
 router.get('/learner/:id', async (req, res, next) => {
   try {
@@ -96,17 +81,18 @@ router.get('/class/:id', async (req, res, next) => {
     // if (!result) res.send("Not Found").status(404)
     // else res.send(result).status(200)
 
-    const query = { class_id: req.params.id };
-    if (req.query.learner) {
-      query.learner_id = req.query.learner;
-    }
-    const grades = await Grade.find(query);
-    if (!grades) return res.status(404).send("Not Found");
-    res.status(200).json(grades);
+    const classId = parseInt(req.params.id);
+    const grades = await Grade.find({ class_id: classId });
 
-  } catch (err) {
-    next(err)
-  }
+    if (grades.length === 0) {
+        return res.status(404).json({ message: 'No grades found for this class ID' });
+    }
+
+    res.status(200).json(grades); 
+} catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+}
 });
 
 // get learner average for EACH class
@@ -222,20 +208,17 @@ router.patch('/:id/add', async (req, res, next) => {
 const grade = await Grade.findById(req.params.id);
 if (!grade) return res.status(404).send("Not Found");
 
-// Проверяем, есть ли элемент с таким типом в массиве `scores`
+
 const existingScoreIndex = grade.scores.findIndex(
   (score) => score.type === req.body.type
 );
 
 if (existingScoreIndex >= 0) {
-  // Если тип уже существует, обновляем его значение
   grade.scores[existingScoreIndex].score = req.body.score;
 } else {
-  // Если тип не найден, добавляем новый элемент
   grade.scores.push(req.body);
 }
 
-// Сохраняем изменения в базе данных
 await grade.save();
 res.status(200).json(grade);
   } catch (err) {
@@ -378,7 +361,22 @@ router.delete("/class/:id", async (req, res, next) => {
   }
 })
 
+// Get a single grade entry
+router.get('/:id', async (req, res, next) => {
+  try {
+    // let collection = db.collection("grades");
+    // const query = { _id: new ObjectId(req.params.id) }
+    // let result = await collection.findOne(query);
+    // if (!result) res.send("Not Found").status(404)
+    // else res.send(result).status(200)
 
+    const grade = await Grade.findById(req.params.id);
+    if (!grade) return res.status(404).send("Not Found");
+    res.status(200).json(grade);
+  } catch (err) {
+    next(err) // the next function directs the err to the global error handling middleware
+  }
+});
 
 // TESTING
 

@@ -20,8 +20,9 @@ app.get("/", (req, res) => {
 });
 
 // Mount the routes
-app.use("/grades", gradesRoutes);
 app.use("/grades", grades);
+app.use("/grades", gradesRoutes);
+
 
 
 // Global Error handling middleware

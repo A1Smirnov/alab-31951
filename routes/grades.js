@@ -215,14 +215,29 @@ router.patch('/:id/add', async (req, res, next) => {
     // if (!result) res.status(404).send("Not Found");
     // else res.status(200).send(result);
 
-    const updatedGrade = await Grade.findByIdAndUpdate(
-      req.params.id,
-      { $push: { scores: req.body } },
-      { new: true }
-    );
-    if (!updatedGrade) return res.status(404).send("Not Found");
-    res.status(200).json(updatedGrade);
+// OH MY! LAST LAB I MADE A MISTAKE: PUSHING NOT PATCHING !!!
+// NEED TO FIX LAST LAB TOO
+// BUGFIX:
 
+const grade = await Grade.findById(req.params.id);
+if (!grade) return res.status(404).send("Not Found");
+
+// Проверяем, есть ли элемент с таким типом в массиве `scores`
+const existingScoreIndex = grade.scores.findIndex(
+  (score) => score.type === req.body.type
+);
+
+if (existingScoreIndex >= 0) {
+  // Если тип уже существует, обновляем его значение
+  grade.scores[existingScoreIndex].score = req.body.score;
+} else {
+  // Если тип не найден, добавляем новый элемент
+  grade.scores.push(req.body);
+}
+
+// Сохраняем изменения в базе данных
+await grade.save();
+res.status(200).json(grade);
   } catch (err) {
     next(err)
   }
